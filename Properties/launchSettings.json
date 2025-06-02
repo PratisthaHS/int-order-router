@@ -1,0 +1,9 @@
+{
+  "profiles": {
+    "int_order_router": {
+      "commandName": "Project",
+      "commandLineArgs": "--port 7271",
+      "launchBrowser": false
+    }
+  }
+}
