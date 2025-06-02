@@ -272,6 +272,7 @@ azurite/
 
 # Logs
 .vscode/
+Properties/launchSettings.json
 
 # OS junk
 .DS_Store
