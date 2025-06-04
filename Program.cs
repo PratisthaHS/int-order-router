@@ -2,6 +2,7 @@ using Azure.Storage.Blobs;
 using int_order_router.Helpers;
 using int_order_router.Services;
 using int_order_router.Services.Interfaces;
+using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -18,7 +19,14 @@ var host = new HostBuilder()
             return new BlobServiceClient(connectionString);
         });
 
-        services.AddSingleton<Text204Parser>();
+        services.AddSingleton(serviceProvider =>
+        {
+            var config = serviceProvider.GetRequiredService<IConfiguration>();
+            var connectionString = config.GetConnectionString("SqlConnection");
+            return new SqlConnection(connectionString);
+        });
+
+        services.AddSingleton<Edi204Parser>();
         services.AddScoped<IRoutingService, RoutingService>();
     })
     .Build();
