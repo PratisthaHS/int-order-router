@@ -36,9 +36,59 @@ public class RoutingService : IRoutingService
         }
 
         int customerId = (int)customerIdObj;
+        
+        // Check for duplicate order
+        var duplicateCheckCmd = new SqlCommand(@"
+            SELECT TOP 1 id, routed_to FROM routing_history
+            WHERE customer_id = @custId
+            AND booking_number = @bkg
+            AND container_id = @cont
+            AND mbol = @mbol
+            AND pick_up_city = @pickup
+            AND drop_off_city = @drop
+            ORDER BY id DESC", _connection, transaction);
+
+        duplicateCheckCmd.Parameters.AddWithValue("@custId", customerId);
+        duplicateCheckCmd.Parameters.AddWithValue("@bkg", record.ShipmentId);
+        duplicateCheckCmd.Parameters.AddWithValue("@mbol", record.ShipmentId);
+        duplicateCheckCmd.Parameters.AddWithValue("@cont", record.ContainerId);
+        duplicateCheckCmd.Parameters.AddWithValue("@pickup", record.PickupCity);
+        duplicateCheckCmd.Parameters.AddWithValue("@drop", record.DeliveryCity);
+
+        using var dupReader = await duplicateCheckCmd.ExecuteReaderAsync();
+        if (await dupReader.ReadAsync())
+        {
+            int priorRouteId = dupReader.GetInt32(0);
+            string priorRouteTo = dupReader.GetString(1);
+            dupReader.Close();
+
+            // Log reused routing
+            _logger.LogInformation($"Duplicate detected — reusing previous route: {priorRouteTo} (route_id={priorRouteId})");
+
+            // Insert new history for tracking this duplicate
+            var historyReuseCmd = new SqlCommand(@"
+                INSERT INTO routing_history
+                    (customer_id, mbol, booking_number, container_id, pick_up_city, drop_off_city, routed_to)
+                VALUES
+                    (@custId, @mbol, @bkg, @cont, @pickup, @drop, @route)", _connection, transaction);
+
+            historyReuseCmd.Parameters.AddWithValue("@custId", customerId);
+            historyReuseCmd.Parameters.AddWithValue("@mbol", record.ShipmentId);
+            historyReuseCmd.Parameters.AddWithValue("@bkg", record.ShipmentId);
+            historyReuseCmd.Parameters.AddWithValue("@cont", record.ContainerId);
+            historyReuseCmd.Parameters.AddWithValue("@pickup", record.PickupCity);
+            historyReuseCmd.Parameters.AddWithValue("@drop", record.DeliveryCity);
+            historyReuseCmd.Parameters.AddWithValue("@route", priorRouteTo);
+
+            await historyReuseCmd.ExecuteNonQueryAsync();
+            transaction.Commit();
+            return priorRouteTo;
+        }
+        dupReader.Close();
+
 
         // Try lane-based routing rule first
-        var laneCmd = new SqlCommand(@"
+            var laneCmd = new SqlCommand(@"
             SELECT TOP 1 id, route_to FROM lane_routing_rules
             WHERE customer_id = @customerId
               AND pick_up_city = @pickup
