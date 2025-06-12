@@ -42,7 +42,7 @@ docker run -e "ACCEPT_EULA=Y" -e "SA_PASSWORD="yourPassword"" -p 1433:1433 --nam
 
 ``` SQL
 -- Add a customer
-INSERT INTO customers (name) VALUES ('Walmart');
+INSERT INTO customers (name) VALUES ('WALMCM');
 
 -- Add lane-based routing rules
 INSERT INTO lane_routing_rules (customer_id, pick_up_city, drop_off_city, route_to, is_active, created_by)

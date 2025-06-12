@@ -21,13 +21,23 @@ CREATE TABLE weekly_quota_rules (
     id INT PRIMARY KEY IDENTITY(1,1),
     customer_id INT NOT NULL,
     weekly_quota INT NOT NULL,
-    start_of_week DATE NOT NULL,
-    is_active BIT DEFAULT 1,
     created_by VARCHAR(255),
     created_at DATETIME DEFAULT GETDATE(),
     updated_at DATETIME DEFAULT GETDATE(),
     FOREIGN KEY (customer_id) REFERENCES customers(id)
 );
+
+CREATE TABLE quota_rule_change_log (
+    id INT PRIMARY KEY IDENTITY(1,1),
+    customer_id INT NOT NULL,
+    old_quota INT NULL,
+    new_quota INT NOT NULL,
+    changed_by VARCHAR(255),
+    changed_at DATETIME DEFAULT GETDATE(),
+    comment VARCHAR(1000) NULL,
+    FOREIGN KEY (customer_id) REFERENCES customers(id)
+);
+
 
 CREATE TABLE routing_history (
     id INT PRIMARY KEY IDENTITY(1,1),

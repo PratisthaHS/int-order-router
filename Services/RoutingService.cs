@@ -171,7 +171,7 @@ public class RoutingService : IRoutingService
                   AND routed_at >= @weekStart
             ) AS used
             FROM weekly_quota_rules
-            WHERE customer_id = @custId AND is_active = 1
+            WHERE customer_id = @custId
             ORDER BY id DESC", _connection, transaction);
 
         quotaCmd.Parameters.AddWithValue("@custId", customerId);
