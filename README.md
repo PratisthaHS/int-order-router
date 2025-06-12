@@ -48,7 +48,7 @@ INSERT INTO customers (name) VALUES ('WALMCM');
 INSERT INTO lane_routing_rules (customer_id, pick_up_city, drop_off_city, route_to, is_active, created_by)
 VALUES 
 (1, 'Los Angeles', 'Chicago', 'Hub', 1, 'admin'),
-(1, 'Chino', 'Denver', 'Trinium', 1, 'admin');
+
 
 -- Add a weekly quota rule (e.g., max 2 per week)
 INSERT INTO weekly_quota_rules (customer_id, weekly_quota, start_of_week, is_active, created_by)

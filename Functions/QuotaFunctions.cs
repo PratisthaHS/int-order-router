@@ -40,7 +40,7 @@ public class QuotaFunctions
                 responseList.Add(new QuotaRuleResponse
                 {
                     WeeklyQuota = reader.GetInt32(0),
-                    UpdatedAt = reader.GetDateTime(1),
+                    UpdatedAt = reader.IsDBNull(1) ? null : reader.GetDateTime(1),
                     CustomerName = reader.GetString(2)
                 });
             }
@@ -81,9 +81,12 @@ public class QuotaFunctions
             int customerId = (int)customerIdObj;
 
             // Check if rule exists
-            var checkCmd = new SqlCommand("SELECT COUNT(*) FROM weekly_quota_rules WHERE customer_id = @cid", _connection);
+            var checkCmd = new SqlCommand("SELECT weekly_quota FROM weekly_quota_rules WHERE customer_id = @cid", _connection);
             checkCmd.Parameters.AddWithValue("@cid", customerId);
-            bool exists = (int)await checkCmd.ExecuteScalarAsync() > 0;
+            object result = await checkCmd.ExecuteScalarAsync();
+
+            bool exists = result != null && result != DBNull.Value;
+            int oldQuota = exists ? (int)result : 0;
 
             SqlCommand cmd;
             if (exists)
@@ -107,10 +110,11 @@ public class QuotaFunctions
 
             // Insert audit log
             var auditCmd = new SqlCommand(@"
-                INSERT INTO quota_rule_change_log (customer_id, weekly_quota, changed_by, comment) 
-                VALUES (@cid, @quota, @by, @reason)", _connection);
+                INSERT INTO quota_rule_change_log (customer_id, old_quota, new_quota, changed_by, comment) 
+                VALUES (@cid, @old, @new, @by, @reason)", _connection);
             auditCmd.Parameters.AddWithValue("@cid", customerId);
-            auditCmd.Parameters.AddWithValue("@quota", quota.WeeklyQuota);
+            auditCmd.Parameters.AddWithValue("@old", oldQuota);
+            auditCmd.Parameters.AddWithValue("@new", quota.WeeklyQuota);
             auditCmd.Parameters.AddWithValue("@by", quota.CreatedBy ?? "system");
             auditCmd.Parameters.AddWithValue("@reason", quota.Comment ?? "(no reason)");
 

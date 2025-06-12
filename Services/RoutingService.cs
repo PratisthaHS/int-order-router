@@ -30,10 +30,41 @@ public class RoutingService : IRoutingService
         var customerIdObj = await customerCmd.ExecuteScalarAsync();
         if (customerIdObj == null)
         {
-            _logger.LogWarning($"Customer not found: {record.RefImNumber}");
+            _logger.LogWarning($"Customer not found: {record.RefImNumber}, using fallback customer 'UNKNOWN'");
+
+            // Attempt to get the ID of the fallback customer 'UNKNOWN'
+            var fallbackCmd = new SqlCommand("SELECT id FROM customers WHERE name = @unknown", _connection, transaction);
+            fallbackCmd.Parameters.AddWithValue("@unknown", "UNKNOWN");
+            var fallbackIdObj = await fallbackCmd.ExecuteScalarAsync();
+
+            if (fallbackIdObj == null)
+            {
+                _logger.LogError("Fallback customer 'UNKNOWN' not found in database. Aborting routing.");
+                transaction.Commit();
+                return "Trinium";
+            }
+
+            int unknownCustomerId = (int)fallbackIdObj;
+
+            var historyCmd = new SqlCommand(@"
+                INSERT INTO routing_history
+                    (customer_id, mbol, booking_number, container_id, pick_up_city, drop_off_city, routed_to)
+                VALUES
+                    (@custId, @mbol, @bkg, @cont, @pickup, @drop, @route)", _connection, transaction);
+
+            historyCmd.Parameters.AddWithValue("@custId", unknownCustomerId);
+            historyCmd.Parameters.AddWithValue("@mbol", record.ShipmentId);
+            historyCmd.Parameters.AddWithValue("@bkg", record.ShipmentId);
+            historyCmd.Parameters.AddWithValue("@cont", record.ContainerId);
+            historyCmd.Parameters.AddWithValue("@pickup", record.PickupCity);
+            historyCmd.Parameters.AddWithValue("@drop", record.DeliveryCity);
+            historyCmd.Parameters.AddWithValue("@route", "Trinium");
+
+            await historyCmd.ExecuteNonQueryAsync();
             transaction.Commit();
             return "Trinium";
         }
+
 
         int customerId = (int)customerIdObj;
         
