@@ -7,22 +7,22 @@ using System.Text.Json;
 
 namespace int_order_router.Functions;
 
-public class Blob204Router
+public class Blob204RouterFunctions
 {
     private readonly ILogger _logger;
     private readonly BlobServiceClient _blobServiceClient;
     private readonly Edi204Parser _parser;
     private readonly IRoutingService _routingService;
 
-    public Blob204Router(ILoggerFactory loggerFactory, BlobServiceClient blobServiceClient, Edi204Parser parser, IRoutingService routingService)
+    public Blob204RouterFunctions(ILoggerFactory loggerFactory, BlobServiceClient blobServiceClient, Edi204Parser parser, IRoutingService routingService)
     {
-        _logger = loggerFactory.CreateLogger<Blob204Router>();
+        _logger = loggerFactory.CreateLogger<Blob204RouterFunctions>();
         _blobServiceClient = blobServiceClient;
         _parser = parser;
         _routingService = routingService;
     }
 
-    [Function("Blob204Router")]
+    [Function("Blob204RouterFunctions")]
     public async Task Run(
         [BlobTrigger("edi-intake/{name}", Connection = "AzureWebJobsStorage")] ReadOnlyMemory<byte> blobBytes,
         string name)
@@ -55,12 +55,12 @@ public class Blob204Router
         foreach (var record in parsedRecords)
         {
             routeTo = await _routingService.RouteAsync(record);
-            // _logger.LogInformation($"Routed to: {routeTo} - ShipmentID: {record.ShipmentId}, Pickup: {record.PickupCity}, Delivery: {record.DeliveryCity}, Order#: {record.ContainerId}, ContainerOwner: {record.ContainerOwner}, CustomerName: {record.CustomerName}");
+            _logger.LogInformation($"Routed to: {routeTo} - ShipmentID: {record.ShipmentId}, Pickup: {record.PickupCity}, Delivery: {record.DeliveryCity}, Order#: {record.ContainerId}, ContainerOwner: {record.ContainerOwner}, CustomerName/RefImNumber: {record.RefImNumber}");
             string json = JsonSerializer.Serialize(record, new JsonSerializerOptions
             {
             WriteIndented = false
             });
-            _logger.LogInformation($"Routed to: {routeTo} - Record: {json}");
+            // _logger.LogInformation($"Routed to: {routeTo} - Record: {json}");
         }
 
         // Step 4: Move to respective TMS folder

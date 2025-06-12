@@ -19,7 +19,7 @@ var host = new HostBuilder()
             return new BlobServiceClient(connectionString);
         });
 
-        services.AddSingleton(serviceProvider =>
+        services.AddScoped(serviceProvider =>
         {
             var config = serviceProvider.GetRequiredService<IConfiguration>();
             var connectionString = config.GetConnectionString("SqlConnection");
